@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'login_screen.dart';
 import '../models/student.dart';
 import '../models/subject.dart';
@@ -23,8 +25,7 @@ Map<String, List<SubjectStats>> cachedSubjectStats = {};
 Map<String, List<AttendanceStats>> cachedAttendanceStats = {};
 
 DateTime _selectedDate = DateTime.now();
-final ValueNotifier<DateTime> _currentWeekStartDateNotifier =
-    ValueNotifier(DateTime.now());
+final ValueNotifier<DateTime> _currentWeekStartDateNotifier = ValueNotifier(DateTime.now());
 
 String? selectedSession;
 String? holidayName;
@@ -92,10 +93,7 @@ class DashboardScreen extends StatefulWidget {
 class DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = true;
 
-  final List<String> months = List.generate(
-      12,
-      (index) =>
-          DateFormat.MMMM().format(DateTime(0, index + 1)).substring(0, 3));
+  final List<String> months = List.generate(12, (index) => DateFormat.MMMM().format(DateTime(0, index + 1)).substring(0, 3));
 
   @override
   void initState() {
@@ -115,8 +113,7 @@ class DashboardScreenState extends State<DashboardScreen> {
   Future<void> fetchClasses() async {
     int? teacherId = teacher?.teacherId;
     if (teacherSubjects.isEmpty) {
-      final response = await api_service
-          .getApiRequest('/teacher/classes?teacher_id=$teacherId');
+      final response = await api_service.getApiRequest('/teacher/classes?teacher_id=$teacherId');
       if (response.statusCode == 200) {
         teacherSubjects = TeacherSubject.parseList(response.body);
         print(response.body);
@@ -133,25 +130,18 @@ class DashboardScreenState extends State<DashboardScreen> {
       if (subject.semesterType == semesterType) {
         if (semesterType == "S") {
           if (date.year == subject.batchOf - subject.year) {
-            classSubject.add({
-              "class_id": subject.classId,
-              "subject_code": subject.subjectCode
-            });
+            classSubject.add({"class_id": subject.classId, "subject_code": subject.subjectCode});
           }
         } else {
           if (date.year == subject.batchOf - subject.year + 1) {
-            classSubject.add({
-              "class_id": subject.classId,
-              "subject_code": subject.subjectCode
-            });
+            classSubject.add({"class_id": subject.classId, "subject_code": subject.subjectCode});
           }
         }
       }
     }
     cachedTimetable[date.year.toString() + semesterType] ??= {};
 
-    if (cachedTimetable[date.year.toString() + semesterType]!
-        .containsKey(date.weekday)) {
+    if (cachedTimetable[date.year.toString() + semesterType]!.containsKey(date.weekday)) {
       setState(() {
         isLoading = false;
       });
@@ -167,8 +157,7 @@ class DashboardScreenState extends State<DashboardScreen> {
       });
       if (response.statusCode == 200) {
         schedule = TTimetable.parseList(response.body);
-        cachedTimetable[date.year.toString() + semesterType]?[date.weekday] =
-            schedule;
+        cachedTimetable[date.year.toString() + semesterType]?[date.weekday] = schedule;
       }
       if (mounted) {
         setState(() {
@@ -178,14 +167,10 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<List<Attendance>> getAttendanceStatus(
-      List<TTimetable> schedule, DateTime date) async {
-    List<dynamic> timetableIds =
-        schedule.map((timetable) => timetable.timetableId).toList();
+  Future<List<Attendance>> getAttendanceStatus(List<TTimetable> schedule, DateTime date) async {
+    List<dynamic> timetableIds = schedule.map((timetable) => timetable.timetableId).toList();
 
-    final response = await api_service.postApiRequest(
-        '/teacher/attendance_status',
-        {'timetable_ids': timetableIds, 'date': date.toString()});
+    final response = await api_service.postApiRequest('/teacher/attendance_status', {'timetable_ids': timetableIds, 'date': date.toString()});
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -201,12 +186,10 @@ class DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildMonthSelector() {
     return ValueListenableBuilder<DateTime>(
-      valueListenable:
-          _currentWeekStartDateNotifier, // Listen to the changes in the notifier
+      valueListenable: _currentWeekStartDateNotifier, // Listen to the changes in the notifier
       builder: (context, date, child) {
         // If the selected date is the same as the current week start date or the selected date is in the first week of the year
-        if (_getWeekOfYear(date) == _getWeekOfYear(_selectedDate) ||
-            _getWeekOfYear(_selectedDate) == 1) {
+        if (_getWeekOfYear(date) == _getWeekOfYear(_selectedDate) || _getWeekOfYear(_selectedDate) == 1) {
           date = _selectedDate;
         }
         int selectedYear = date.year;
@@ -297,10 +280,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 30),
                   Container(
                     child: GridView.count(
-                      shrinkWrap:
-                          true, // Prevent scrolling by shrinking the grid to fit
-                      physics:
-                          NeverScrollableScrollPhysics(), // Disable scrolling
+                      shrinkWrap: true, // Prevent scrolling by shrinking the grid to fit
+                      physics: NeverScrollableScrollPhysics(), // Disable scrolling
                       crossAxisCount: 3, // Number of columns in the grid
                       mainAxisSpacing: 15, // Space between rows
                       crossAxisSpacing: 15, // Space between columns
@@ -389,14 +370,10 @@ class DashboardScreenState extends State<DashboardScreen> {
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! < 0) {
             // Move to next week (add 7 days)
-            _currentWeekStartDateNotifier.value = _currentWeekStartDateNotifier
-                .value
-                .add(const Duration(days: 7));
+            _currentWeekStartDateNotifier.value = _currentWeekStartDateNotifier.value.add(const Duration(days: 7));
           } else if (details.primaryVelocity! > 0) {
             // Move to previous week (subtract 7 days)
-            _currentWeekStartDateNotifier.value = _currentWeekStartDateNotifier
-                .value
-                .subtract(const Duration(days: 7));
+            _currentWeekStartDateNotifier.value = _currentWeekStartDateNotifier.value.subtract(const Duration(days: 7));
           }
         },
         child: LayoutBuilder(
@@ -414,8 +391,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                   itemCount: weekDates.length,
                   itemBuilder: (context, index) {
                     DateTime currentDate = weekDates[index];
-                    String dayOfWeek =
-                        DateFormat.E().format(currentDate); // Short day name
+                    String dayOfWeek = DateFormat.E().format(currentDate); // Short day name
 
                     return GestureDetector(
                       onTap: () {
@@ -430,30 +406,14 @@ class DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               dayOfWeek,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 16, fontWeight: FontWeight.w500),
+                              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 8),
                             CircleAvatar(
-                              backgroundColor:
-                                  currentDate.day == _selectedDate.day &&
-                                          currentDate.month ==
-                                              _selectedDate.month &&
-                                          currentDate.year == _selectedDate.year
-                                      ? const Color(0xFF2970FE)
-                                      : Colors.transparent,
+                              backgroundColor: currentDate.day == _selectedDate.day && currentDate.month == _selectedDate.month && currentDate.year == _selectedDate.year ? const Color(0xFF2970FE) : Colors.transparent,
                               child: Text(
                                 '${currentDate.day}',
-                                style: GoogleFonts.poppins(
-                                    color:
-                                        currentDate.day == _selectedDate.day &&
-                                                currentDate.month ==
-                                                    _selectedDate.month &&
-                                                currentDate.year ==
-                                                    _selectedDate.year
-                                            ? Colors.white
-                                            : Colors.black,
-                                    fontWeight: FontWeight.w500),
+                                style: GoogleFonts.poppins(color: currentDate.day == _selectedDate.day && currentDate.month == _selectedDate.month && currentDate.year == _selectedDate.year ? Colors.white : Colors.black, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -504,7 +464,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MarkAttendanceViaPhoto(),
+                      builder: (context) => MarkAttendanceViaPhoto(
+                        timetable: timetable,
+                      ),
                     ),
                   );
                   if (result == true) {
@@ -521,9 +483,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ManualAttendanceScreen(
-                          timetable: timetable,
-                          attendanceStatus: attendanceStatus),
+                      builder: (context) => ManualAttendanceScreen(timetable: timetable, attendanceStatus: attendanceStatus),
                     ),
                   );
                   if (result == true) {
@@ -575,9 +535,7 @@ class DashboardScreenState extends State<DashboardScreen> {
   Future<Widget> _buildSchedule() async {
     DateTime date = _selectedDate;
     String semesterType = date.month <= 6 ? "S" : "A";
-    List<TTimetable> schedule =
-        cachedTimetable[date.year.toString() + semesterType]?[date.weekday] ??
-            [];
+    List<TTimetable> schedule = cachedTimetable[date.year.toString() + semesterType]?[date.weekday] ?? [];
     List<Attendance>? attendance;
 
     if (schedule.isNotEmpty) {
@@ -612,14 +570,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     Color boxColor;
     if (attendance.status == 1) {
       boxColor = const Color(0x70AAEFC6);
-    } else if (DateTime(
-            _selectedDate.year,
-            _selectedDate.month,
-            _selectedDate.day,
-            int.parse(endTime[0]),
-            int.parse(endTime[1]),
-            int.parse(endTime[2]))
-        .isBefore(DateTime.now())) {
+    } else if (DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, int.parse(endTime[0]), int.parse(endTime[1]), int.parse(endTime[2])).isBefore(DateTime.now())) {
       boxColor = const Color(0x40FCA19B);
     } else {
       boxColor = const Color(0x40D3D3D3);
@@ -649,8 +600,7 @@ class DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 16), // Space between columns
             Expanded(
               child: InkWell(
-                onTap: () =>
-                    _showAttendanceOptions(timetable, attendance.status ?? 0),
+                onTap: () => _showAttendanceOptions(timetable, attendance.status ?? 0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
@@ -673,20 +623,15 @@ class DashboardScreenState extends State<DashboardScreen> {
                               child: ListTile(
                                 title: Text(
                                   timetable.subjectName,
-                                  style: const TextStyle(
-                                      height: 1.2,
-                                      letterSpacing: 0.4,
-                                      wordSpacing: 2),
+                                  style: const TextStyle(height: 1.2, letterSpacing: 0.4, wordSpacing: 2),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(timetable.roomNumber
-                                        .toString()), // Classroom
-                                    Text(
-                                        '${formatTime(timetable.startTime)} - ${formatTime(timetable.endTime)}'), // Time slot
+                                    Text(timetable.roomNumber.toString()), // Classroom
+                                    Text('${formatTime(timetable.startTime)} - ${formatTime(timetable.endTime)}'), // Time slot
                                   ],
                                 ),
                               ),
@@ -713,9 +658,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           children: [
             const Padding(padding: EdgeInsets.only(left: 10)),
             Text(
-              teacher != null
-                  ? "${teacher!.teacherName} ${teacher!.teacherSurname}"
-                  : "",
+              teacher != null ? "${teacher!.teacherName} ${teacher!.teacherSurname}" : "",
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -726,10 +669,7 @@ class DashboardScreenState extends State<DashboardScreen> {
             CircleAvatar(
               backgroundColor: const Color(0xFF2970FE),
               child: Text(
-                teacher != null
-                    ? getInitials(teacher?.teacherName ?? "",
-                        teacher?.teacherSurname ?? "")
-                    : "",
+                teacher != null ? getInitials(teacher?.teacherName ?? "", teacher?.teacherSurname ?? "") : "",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -752,23 +692,19 @@ class DashboardScreenState extends State<DashboardScreen> {
                 ? Center(
                     child: Text(
                       'Holiday: $holidayName',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w500),
-                      overflow: TextOverflow
-                          .ellipsis, // Adds "..." if the text overflows
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis, // Adds "..." if the text overflows
                     ),
                   )
                 : FutureBuilder<Widget>(
                     future: _buildSchedule(),
-                    builder:
-                        (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+                    builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       } else if (snapshot.hasData) {
-                        return snapshot
-                            .data!; // Return the widget once it's ready
+                        return snapshot.data!; // Return the widget once it's ready
                       } else {
                         return const Text('No data available');
                       }
@@ -785,8 +721,7 @@ class ManualAttendanceScreen extends StatefulWidget {
   final TTimetable timetable;
   final int attendanceStatus;
 
-  const ManualAttendanceScreen(
-      {super.key, required this.timetable, required this.attendanceStatus});
+  const ManualAttendanceScreen({super.key, required this.timetable, required this.attendanceStatus});
 
   @override
   ManualAttendanceScreenState createState() => ManualAttendanceScreenState();
@@ -805,8 +740,7 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
   }
 
   Future<void> fetchStudents() async {
-    final response = await api_service
-        .getApiRequest('/students?batch_id=${widget.timetable.batchId}');
+    final response = await api_service.getApiRequest('/students?batch_id=${widget.timetable.batchId}');
     if (response.statusCode == 200) {
       setState(() {
         students = Student.parseList(response.body);
@@ -814,15 +748,11 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
     }
 
     if (widget.attendanceStatus == 1) {
-      final response = await api_service.getApiRequest(
-          '/teacher/attendance?timetable_id=${widget.timetable.timetableId}&date=${formatDate(_selectedDate)}');
+      final response = await api_service.getApiRequest('/teacher/attendance?timetable_id=${widget.timetable.timetableId}&date=${formatDate(_selectedDate)}');
       if (response.statusCode == 200) {
         final List<dynamic> attendanceData = jsonDecode(response.body);
         setState(() {
-          selectedStudentIds = attendanceData
-              .where((record) => record['status'] == 1)
-              .map<int>((record) => record['student_id'])
-              .toSet();
+          selectedStudentIds = attendanceData.where((record) => record['status'] == 1).map<int>((record) => record['student_id']).toSet();
         });
       }
     }
@@ -832,9 +762,7 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
     List<Map<String, dynamic>> attendanceRecords = [];
 
     if (widget.attendanceStatus == 0) {
-      absentStudentIds.addAll(students
-          .where((student) => !presentStudentIds.contains(student.studentId))
-          .map((student) => student.studentId));
+      absentStudentIds.addAll(students.where((student) => !presentStudentIds.contains(student.studentId)).map((student) => student.studentId));
     }
 
     attendanceRecords.addAll(presentStudentIds.map((id) {
@@ -857,8 +785,7 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
       };
     }).toList());
 
-    await api_service.postApiRequest(
-        '/teacher/update_attendance', attendanceRecords);
+    await api_service.postApiRequest('/teacher/update_attendance', attendanceRecords);
 
     if (!mounted) return;
     Navigator.pop(context, true);
@@ -899,8 +826,7 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
                       });
                     },
                   ),
-                  title:
-                      Text('${student.studentName} ${student.studentSurname}'),
+                  title: Text('${student.studentName} ${student.studentSurname}'),
                   subtitle: Text(student.studentId.toString()),
                   // trailing: CircleAvatar(
                   //   backgroundImage: NetworkImage(student.profileImageUrl), // Assuming URL is available
@@ -916,16 +842,12 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
               child: ElevatedButton(
                 onPressed: submitAttendance,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(
-                      0xFF2970FE), // Match the blue color from your image
+                  backgroundColor: const Color(0xFF2970FE), // Match the blue color from your image
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text(
                   'Submit',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             ),
@@ -937,21 +859,33 @@ class ManualAttendanceScreenState extends State<ManualAttendanceScreen> {
 }
 
 class MarkAttendanceViaPhoto extends StatefulWidget {
-  const MarkAttendanceViaPhoto({super.key});
+  final TTimetable timetable;
+
+  const MarkAttendanceViaPhoto({super.key, required this.timetable});
 
   @override
   MarkAttendanceViaPhotoState createState() => MarkAttendanceViaPhotoState();
 }
 
-class MarkAttendanceViaPhotoState extends State<MarkAttendanceViaPhoto> {
+class MarkAttendanceViaPhotoState extends State<MarkAttendanceViaPhoto> with WidgetsBindingObserver {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
+    super.dispose();
   }
 
   Future<void> _checkPermissions() async {
@@ -962,98 +896,221 @@ class MarkAttendanceViaPhotoState extends State<MarkAttendanceViaPhoto> {
   }
 
   Future<void> _initializeCamera() async {
-    await _checkPermissions();
-    _cameras = await availableCameras();
-    _cameraController = CameraController(
-      _cameras![0],
-      ResolutionPreset.high,
-    );
-    await _cameraController!.initialize();
-    await _cameraController!.setFlashMode(FlashMode.off);
-    setState(() {
-      _isCameraInitialized = true;
-    });
-  }
+    try {
+      await _checkPermissions();
+      _cameras = await availableCameras();
 
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    super.dispose();
+      // Pick the back camera (you can choose front if you want)
+      final backCamera = _cameras!.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+      );
+
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+
+      await _cameraController!.initialize();
+      await _cameraController!.setFlashMode(FlashMode.off);
+
+      if (!mounted) return;
+      setState(() => _isCameraInitialized = true);
+    } catch (e) {
+      print('Camera initialization error: $e');
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Camera Error'),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              )
+            ],
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _captureAndUploadPhoto() async {
     if (!_cameraController!.value.isInitialized) return;
 
+    setState(() => _isUploading = true);
+
     try {
       final photo = await _cameraController!.takePicture();
+      final file = File(photo.path);
 
-      // Read the image as bytes
-      final imageBytes = await photo.readAsBytes();
-
-      // Encode the image as base64
-      final base64Image = base64Encode(imageBytes);
-
-      // Prepare the body for the API request
-      final body = {
-        'photo': base64Image,
-        'filename': photo.name, // Add filename if needed
-      };
-
-      // Use the existing `postApiRequest` function
-      final response =
-          await api_service.postApiRequest("/teacher/mark_attendance", body);
+      final response = await api_service.postMultipartRequest(
+        "/teacher/mark_attendance",
+        file,
+        fields: {
+          'timetable_id': widget.timetable.timetableId.toString(),
+          'date': _selectedDate.toString(),
+        },
+      );
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Attendance marked: ${jsonResponse["message"]}'),
-          ),
+          SnackBar(content: Text('Attendance marked: ${jsonResponse["message"]}')),
         );
-        setState(() {});
-        Navigator.pop(context, true); // Navigate back to the dashboard
+        Navigator.pop(context, true);
       } else {
         final errorResponse = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: ${errorResponse["message"]}')),
+          SnackBar(content: Text('Failed: ${errorResponse["error"]}')),
         );
       }
     } catch (e) {
+      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() => _isUploading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final mediaQuery = MediaQuery.of(context);
+    final padding = mediaQuery.padding;
+
+    const double customPadding = 64;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Mark Attendance via Photo")),
       body: _isCameraInitialized
-          ? Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 4 / 3, // Set the aspect ratio to 4:3
-                  child: CameraPreview(_cameraController!),
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: FloatingActionButton(
-                        onPressed: _captureAndUploadPhoto,
-                        backgroundColor: Colors.blue,
-                        child:
-                            const Icon(Icons.camera_alt, color: Colors.white),
+          ? (orientation == Orientation.portrait
+              ? Stack(
+                  children: [
+                    // Portrait: full screen preview with extra top and bottom padding
+                    Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: padding.top + customPadding - 16,
+                          left: padding.left,
+                          right: padding.right,
+                          bottom: padding.bottom + customPadding + 64,
+                        ),
+                        child: CameraPreview(_cameraController!),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            )
+
+                    // Portrait: Back button top-left
+                    Positioned(
+                      top: 32,
+                      left: 8,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+
+                    // Portrait: Capture button at bottom center with increased bottom padding
+                    if (!_isUploading)
+                      Positioned(
+                        bottom: padding.bottom + 48,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: FloatingActionButton(
+                            onPressed: _captureAndUploadPhoto,
+                            backgroundColor: const Color(0xFF2970FE),
+                            child: const Icon(Icons.camera_alt, color: Colors.white),
+                          ),
+                        ),
+                      ),
+
+                    // Uploading overlay
+                    if (_isUploading)
+                      Container(
+                        color: Colors.black.withOpacity(0.4),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(color: Colors.white),
+                              SizedBox(height: 12),
+                              Text(
+                                'Uploading...',
+                                style: TextStyle(color: Colors.white, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : Stack(
+                  children: [
+                    // Landscape: full screen preview with extra left and right padding
+                    Positioned.fill(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: padding.top,
+                          left: padding.left + customPadding - 32,
+                          right: padding.right + customPadding + 64,
+                          bottom: padding.bottom,
+                        ),
+                        child: CameraPreview(_cameraController!),
+                      ),
+                    ),
+
+                    // Landscape: Back button top-left
+                    Positioned(
+                      top: padding.top + 8,
+                      left: 16,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+
+                    // Landscape: Capture button center right, no rotation
+                    if (!_isUploading)
+                      Positioned(
+                        right: 48,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: FloatingActionButton(
+                            onPressed: _captureAndUploadPhoto,
+                            backgroundColor: const Color(0xFF2970FE),
+                            child: const Icon(Icons.camera_alt, color: Colors.white),
+                          ),
+                        ),
+                      ),
+
+                    // Uploading overlay
+                    if (_isUploading)
+                      Container(
+                        color: Colors.black.withOpacity(0.4),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(color: Colors.white),
+                              SizedBox(height: 12),
+                              Text(
+                                'Uploading...',
+                                style: TextStyle(color: Colors.white, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ))
           : const Center(child: CircularProgressIndicator()),
     );
   }
@@ -1086,19 +1143,16 @@ class SubjectsScreenState extends State<SubjectsScreen> {
     fetchSubjectsStats(currentYearClasses, forceRefresh: true);
   }
 
-  Future<void> fetchSubjectsStats(List<TeacherSubject>? classes,
-      {bool forceRefresh = false}) async {
+  Future<void> fetchSubjectsStats(List<TeacherSubject>? classes, {bool forceRefresh = false}) async {
     setState(() {
       isLoading = true;
     });
 
     if (forceRefresh) {
-      final response = await api_service
-          .getApiRequest('/teacher/session_stats?classes=$classes');
+      final response = await api_service.getApiRequest('/teacher/session_stats?classes=$classes');
 
       if (response.statusCode == 200) {
-        final List<SubjectStats> fetchedSubjects =
-            SubjectStats.parseList(response.body);
+        final List<SubjectStats> fetchedSubjects = SubjectStats.parseList(response.body);
         cachedSubjectStats[selectedSession ?? ""] = fetchedSubjects;
       }
     }
@@ -1108,15 +1162,12 @@ class SubjectsScreenState extends State<SubjectsScreen> {
     });
   }
 
-  Future<void> fetchAttendanceDetails(int teacherId, String subjectCode,
-      {bool forceRefresh = false}) async {
+  Future<void> fetchAttendanceDetails(int teacherId, String subjectCode, {bool forceRefresh = false}) async {
     if (!cachedAttendanceStats.containsKey(subjectCode) || forceRefresh) {
-      final response = await api_service.getApiRequest(
-          '/teacher/attendance_stats?teacher_id=$teacherId&subject_code=$subjectCode');
+      final response = await api_service.getApiRequest('/teacher/attendance_stats?teacher_id=$teacherId&subject_code=$subjectCode');
 
       if (response.statusCode == 200) {
-        final List<AttendanceStats> fetchedAttendanceDetails =
-            AttendanceStats.parseList(response.body);
+        final List<AttendanceStats> fetchedAttendanceDetails = AttendanceStats.parseList(response.body);
 
         cachedAttendanceStats[subjectCode] = fetchedAttendanceDetails;
       }
@@ -1165,28 +1216,24 @@ class SubjectsScreenState extends State<SubjectsScreen> {
                   TableRow(
                     children: [
                       Padding(
-                        padding: EdgeInsets.only(
-                            left: 15.0), // Increased padding above status
+                        padding: EdgeInsets.only(left: 15.0), // Increased padding above status
                         child: Text(
                           "Date",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18.0),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
                         ),
                       ),
                       Center(
                         // Center the content inside the Status column
                         child: Text(
                           "Status",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18.0),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
                         ),
                       ),
                       Center(
                         // Center the content inside the Action column
                         child: Text(
                           "Action",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18.0),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
                         ),
                       ),
                     ],
@@ -1207,27 +1254,19 @@ class SubjectsScreenState extends State<SubjectsScreen> {
                               TableRow(
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.only(
-                                        left:
-                                            15), // Increased padding above status
+                                    padding: const EdgeInsets.only(left: 15), // Increased padding above status
                                     child: Text(
                                       "${attendance.date}\n${attendance.startTime.substring(0, 5)} to ${attendance.endTime.substring(0, 5)}",
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.only(
-                                        top:
-                                            8.0), // Increased padding above status
+                                    padding: const EdgeInsets.only(top: 8.0), // Increased padding above status
                                     child: Center(
                                       // Center the content inside the Status column
                                       child: Text(
-                                        attendance.status == 1
-                                            ? "Present"
-                                            : "Absent",
+                                        attendance.status == 1 ? "Present" : "Absent",
                                         style: TextStyle(
-                                          color: attendance.status == 1
-                                              ? Colors.green
-                                              : Colors.red,
+                                          color: attendance.status == 1 ? Colors.green : Colors.red,
                                         ),
                                       ),
                                     ),
@@ -1239,14 +1278,9 @@ class SubjectsScreenState extends State<SubjectsScreen> {
                                             onPressed: () {},
                                             style: ElevatedButton.styleFrom(
                                               foregroundColor: Colors.white,
-                                              backgroundColor:
-                                                  Colors.blueAccent,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                      vertical: 8),
-                                              textStyle:
-                                                  const TextStyle(fontSize: 14),
+                                              backgroundColor: Colors.blueAccent,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              textStyle: const TextStyle(fontSize: 14),
                                             ),
                                             child: const Text("Request"),
                                           ),
@@ -1263,17 +1297,13 @@ class SubjectsScreenState extends State<SubjectsScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Padding(
-                              padding: EdgeInsets.only(
-                                  top:
-                                      MediaQuery.of(context).size.width * 0.5)),
+                          Padding(padding: EdgeInsets.only(top: MediaQuery.of(context).size.width * 0.5)),
                           const Text(
                             "No attendance records found",
                             style: TextStyle(
                               fontSize: 22, // Increase font size
                               fontWeight: FontWeight.bold,
-                              color: Colors
-                                  .grey, // Optional: make the color more neutral
+                              color: Colors.grey, // Optional: make the color more neutral
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -1322,8 +1352,7 @@ class SubjectsScreenState extends State<SubjectsScreen> {
                 value: selectedSession,
                 items: sessions.keys.map((key) {
                   final year = key.substring(0, 4);
-                  final semesterType =
-                      key.substring(4) == 'A' ? 'Autumn' : 'Spring';
+                  final semesterType = key.substring(4) == 'A' ? 'Autumn' : 'Spring';
                   return DropdownMenuItem(
                     value: key,
                     child: Text('$year $semesterType'),
@@ -1372,10 +1401,7 @@ class SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double attendancePercentage =
-        (subject.attended ?? 0) > 0 && (subject.total ?? 0) > 0
-            ? (subject.attended! / subject.total!) * 100
-            : 0.0;
+    double attendancePercentage = (subject.attended ?? 0) > 0 && (subject.total ?? 0) > 0 ? (subject.attended! / subject.total!) * 100 : 0.0;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1458,8 +1484,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                 radius: 50,
                 backgroundColor: const Color(0xFF2970FE),
                 child: Text(
-                  getInitials(teacher?.teacherName ?? '',
-                      teacher?.teacherSurname ?? ''),
+                  getInitials(teacher?.teacherName ?? '', teacher?.teacherSurname ?? ''),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -1482,8 +1507,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildUserInfoRow('Name',
-                        '${teacher?.teacherName} ${teacher?.teacherSurname}'),
+                    _buildUserInfoRow('Name', '${teacher?.teacherName} ${teacher?.teacherSurname}'),
                     _buildUserInfoRow('Email', '${teacher?.teacherEmail}'),
                   ],
                 ),

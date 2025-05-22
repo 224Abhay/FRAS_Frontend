@@ -1,8 +1,9 @@
 import 'dart:io';
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:identify_fras/services/api_service.dart';
+import 'package:image/image.dart' as img;
 
 class FaceCaptureScreen extends StatefulWidget {
   @override
@@ -11,7 +12,8 @@ class FaceCaptureScreen extends StatefulWidget {
 
 class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   CameraController? _controller;
-  bool isLoading = true;
+  bool isCameraLoading = true;
+  bool isUploading = false;
 
   @override
   void initState() {
@@ -33,33 +35,57 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       );
 
       await _controller!.initialize();
+
       if (!mounted) return;
-      setState(() => isLoading = false);
+      setState(() => isCameraLoading = false);
     } catch (e) {
       print('Camera init error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to initialize camera')),
+      );
     }
   }
 
   Future<void> _takePictureAndUpload() async {
     if (!_controller!.value.isInitialized) return;
 
-    final XFile file = await _controller!.takePicture();
-    final bytes = await File(file.path).readAsBytes();
-    final base64Image = base64Encode(bytes);
+    setState(() => isUploading = true);
 
-    final response = await postApiRequest("/update-face", {
-      "face_image": base64Image,
-    });
+    try {
+      final XFile file = await _controller!.takePicture();
+      final File imageFile = File(file.path);
 
-    if (response.statusCode == 200) {
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+      img.Image? originalImage = img.decodeImage(imageBytes);
+
+      if (originalImage == null) {
+        throw Exception('Failed to decode image');
+      }
+
+      img.Image fixedImage = img.bakeOrientation(originalImage);
+
+      final tempDir = Directory.systemTemp;
+      final File portraitImage = File('${tempDir.path}/portrait.jpg');
+      await portraitImage.writeAsBytes(img.encodeJpg(fixedImage));
+
+      final response =
+          await postMultipartRequest("/student/update_facedata", portraitImage);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Face data updated successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception('Failed: ${response.body}');
+      }
+    } catch (e) {
+      print('Upload error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Face data updated successfully')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update face data')),
-      );
+    } finally {
+      if (mounted) setState(() => isUploading = false);
     }
   }
 
@@ -71,40 +97,72 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Capture Face Data'),
         backgroundColor: const Color(0xFF2970FE),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Keep camera preview in a taller 4:3 box
-          AspectRatio(
-            aspectRatio: 3 / 4, // 3:4 makes it taller than wide (portrait 4:3)
-            child: ClipRect(
-              child: CameraPreview(_controller!),
+          if (isCameraLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Column(
+              children: [
+                const SizedBox(height: 20),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 3 / 4,
+                      child: CameraPreview(_controller!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: isUploading ? null : _takePictureAndUpload,
+                  icon: const Icon(Icons.camera_alt),
+                  label: Text(
+                    isUploading ? 'Uploading...' : 'Capture & Upload',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2970FE),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 28, vertical: 14),
+                    textStyle: const TextStyle(fontSize: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 6,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _takePictureAndUpload,
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Capture & Upload'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2970FE),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+
+          // Uploading Overlay
+          if (isUploading)
+            Container(
+              color: Colors.black.withOpacity(0.4),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 12),
+                    Text(
+                      'Uploading face data...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
-              elevation: 5,
             ),
-          ),
         ],
       ),
     );

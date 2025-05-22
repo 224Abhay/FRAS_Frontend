@@ -36,6 +36,30 @@ Future<http.Response> postApiRequest(String endpoint, dynamic body) async {
   }
 }
 
+Future<http.Response> postMultipartRequest(String endpoint, File file, {Map<String, String>? fields}) async {
+  try {
+    final uri = Uri.parse('$baseUrl$endpoint');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $accessToken'
+      ..files.add(await http.MultipartFile.fromPath('image', file.path));
+
+    // Add other fields if provided
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return response;
+  } on SocketException catch (_) {
+    return http.Response(
+        '{"message": "Network error: Server down. Please try again later."}', 503);
+  } catch (e) {
+    return http.Response('{"message": "Unexpected error: $e"}', 500);
+  }
+}
+
 Future<http.Response> getApiRequest(String endpoint) async {
   try {
     final response = await http.get(
